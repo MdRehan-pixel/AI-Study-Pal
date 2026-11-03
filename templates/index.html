@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Study Pal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="orb orb-one"></div><div class="orb orb-two"></div>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('home') }}"><span class="brand-mark">✦</span> AI Study Pal</a>
+    <span class="top-note">Learn smarter · Practise better</span>
+  </header>
+  <main class="shell">
+    <section class="card">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for category, message in messages %}
+          <div class="alert {{ category }}">{{ message }}</div>
+        {% endfor %}{% endif %}
+      {% endwith %}
+
+      {% if step == "welcome" %}
+        <div class="hero-icon">🎓</div>
+        <p class="eyebrow">YOUR PERSONAL STUDY COMPANION</p>
+        <h1>Make every study<br><span>session count.</span></h1>
+        <p class="lead">Understand concepts, test what you know, and get a clear picture of where to improve.</p>
+        <div class="feature-grid">
+          <div class="feature"><b>01</b><strong>Learn</strong><small>Clear topic explanations</small></div>
+          <div class="feature"><b>02</b><strong>Practise</strong><small>Topic-based quizzes</small></div>
+          <div class="feature"><b>03</b><strong>Improve</strong><small>Feedback and reports</small></div>
+        </div>
+        <form method="post"><input type="hidden" name="step" value="details"><button class="primary">Get started <span>→</span></button></form>
+        <p class="credit">A capstone project by <strong>Mohammed Rehan</strong> · With support from Launched Global</p>
+
+      {% elif step == "details" %}
+        <p class="eyebrow">LET'S GET STARTED</p><h1>Tell us about <span>yourself.</span></h1>
+        <p class="lead">We’ll use these details to select the right learning material.</p>
+        <form method="post" class="form-stack">
+          <input type="hidden" name="step" value="study">
+          <label>Your name<input name="name" placeholder="Enter your name" maxlength="80" required></label>
+          <label>Class<select name="class" id="classSelect" required><option value="">Choose your class</option>{% for c in classes %}<option value="{{ c }}">Class {{ c }}</option>{% endfor %}</select></label>
+          <label>Subject<select name="subject" required>
+            <option value="">Choose a subject</option>
+            <option>Mathematics</option><option>Physics</option><option>Chemistry</option>
+            <option>Biology</option><option>Computer Science</option><option>History</option>
+          </select></label>
+          <button class="primary">Continue to lesson <span>→</span></button>
+        </form>
+
+      {% elif step == "study" %}
+        <p class="eyebrow">YOUR STUDY SESSION · CLASS {{ student.class_no }} / {{ student.subject }}</p>
+        <h1>Understand the <span>concept.</span></h1>
+        <div class="topic-pill">{{ student.topic }}</div>
+        <div class="lesson"><h3>📘 Learn the concept</h3><p>{{ concept }}</p>
+          {% if key_points %}<h4>Key points</h4><p>{{ key_points }}</p>{% endif %}
+          {% if example %}<h4>Example</h4><p>{{ example }}</p>{% endif %}
+        </div>
+        <form method="post" class="form-stack">
+          <input type="hidden" name="step" value="quiz">
+          <p class="eyebrow">READY TO TEST YOURSELF?</p>
+          <label>Choose a quiz style<select name="difficulty"><option value="easy">Easy — straightforward checks</option><option value="medium">Medium — concept understanding</option><option value="fun">Fun — quick challenge</option></select></label>
+          <p class="fine-print">The quiz uses questions generated from the topic content in the supplied dataset. Difficulty labels currently change the question wording, not a trained adaptive model.</p>
+          <button class="primary">Start 5-question quiz <span>→</span></button>
+        </form>
+
+      {% elif step == "quiz" %}
+        <p class="eyebrow">CLASS {{ student.class_no }} · {{ student.subject }} · {{ difficulty|title }}</p>
+        <h1>Quick <span>knowledge check.</span></h1>
+        <p class="lead">Choose one answer for each question. Your answers are checked on the server when you submit.</p>
+        <form method="post" class="form-stack">
+          <input type="hidden" name="step" value="result"><input type="hidden" name="quiz_id" value="{{ quiz_id }}">
+          {% for q in quiz %}
+            {% set q_index = loop.index0 %}
+            <fieldset class="question"><legend><span class="q-number">0{{ loop.index }}</span>{{ q.question }}</legend>
+              {% for opt in q.options %}
+                <label class="option"><input type="radio" name="q{{ q_index }}" value="{{ opt }}" required><span>{{ opt }}</span></label>
+              {% endfor %}
+            </fieldset>
+          {% endfor %}
+          <button class="primary">Submit answers <span>→</span></button>
+        </form>
+
+      {% elif step == "result" %}
+        <p class="eyebrow">YOUR SESSION SUMMARY</p><h1>Look how far <span>you've come.</span></h1>
+        <div class="score-panel"><div><small>YOUR SCORE</small><strong>{{ result.score }}<i>/{{ result.total }}</i></strong></div><div class="score-ring">{{ (result.score / result.total * 100)|round|int }}<small>%</small></div></div>
+        <p class="lead">{{ result.feedback }}</p>
+        <div class="chart-wrap"><img src="{{ chart_url }}" alt="Performance pie chart"></div>
+        {% if result.wrong_questions %}
+          <h3 class="section-title">Areas to improve</h3>
+          {% for w in result.wrong_questions %}
+            <div class="correction"><strong>{{ w.question }}</strong><p class="wrong">Your answer: {{ w.your_answer }}</p><p class="right">Correct answer: {{ w.correct_answer }}</p></div>
+          {% endfor %}
+        {% else %}<div class="success-note">🎉 Perfect score — no incorrect answers this time.</div>{% endif %}
+        <div class="button-row"><a class="primary button-link" href="{{ url_for('download') }}">Download PDF report ↓</a><a class="secondary" href="{{ url_for('home') }}">New session</a></div>
+      {% endif %}
+    </section>
+  </main>
+  <footer class="page-footer">AI STUDY PAL <span>•</span> BUILT FOR BETTER LEARNING</footer>
+</body>
+</html>
